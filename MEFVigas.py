@@ -4,50 +4,51 @@ import matplotlib.pyplot as plt
 
 # Last update: 2024 09 01
 
-class Nos:
-    def __init__(self, indice):
+class Node:
+    def __init__(self, x, y, indice):
         self.indice = indice
         self.lista_graus = [3 * indice - 2, 3 * indice - 1, 3 * indice]
-        self.fx, self.fy, self.mt = sp.symbols([f'fx{self.indice}', f'fy{self.indice}', f'mt{self.indice}'])
-        self.ux, self.uy, self.ang = sp.symbols([f'ux{self.indice}', f'uy{self.indice}', f'ang{self.indice}'])
+        self.x = x
+        self.y = y
 
-    def atribuir_forcas(self, **kwargs):
+    def set_force(self, **kwargs):
         if 'fx' in kwargs:
-            self.fx = self.fx.subs(self.fx, kwargs['fx'])
+            self.fx = float(kwargs['fx'])
+        else:
+            self.fx = 0
         if 'fy' in kwargs:
-            self.fy = self.fy.subs(self.fy, kwargs['fy'])
-        if 'mt' in kwargs:
-            self.mt = self.mt.subs(self.mt, kwargs['mt'])
+            self.fy = float(kwargs['fy'])
+        else:
+            self.fy = 0
+        if 'mz' in kwargs:
+            self.mz = float(kwargs['mz'])
+        else:
+            self.mz = 0
 
-    def atribuir_deslocamentos(self, **kwargs):
+    def set_displacement(self, **kwargs):
         if 'ux' in kwargs:
-            self.ux = self.ux.subs(self.ux, kwargs['ux'])
+            self.ux = float(kwargs['ux'])
+        else:
+            self.ux = np.nan
         if 'uy' in kwargs:
-            self.uy = self.uy.subs(self.uy, kwargs['uy'])
+            self.uy = float(kwargs['uy'])
+        else:
+            self.uy = np.nan
         if 'ang' in kwargs:
-            self.ang = self.ang.subs(self.ang, kwargs['ang'])
-    
-    def atribuir_esforcos(self, **kwargs):
-        self.ex = 0
-        self.ey = 0
-        self.mf = 0
-        if 'ex' in kwargs:
-            self.ex = kwargs['ex']
-        if 'ey' in kwargs:
-            self.ey = kwargs['ey']
-        if 'mf' in kwargs:
-            self.mf = kwargs['mf']
+            self.ang = float(kwargs['ang'])
+        else:
+            self.ang = np.nan
 
     def substituir_coordenadas(self, x, y):
         self.x = x
         self.y = y
 
-class Barra:   
-    def __init__(self, *args, **kwargs):
-        self.barra_nos = [node for node in args]
-        A, E, L, I = sp.symbols(['A', 'E', 'L', 'I'])
-        self.theta = sp.symbols('theta')
-        ke_ = sp.Matrix([[E * A / L, 0, 0, -E * A / L, 0, 0],
+class Bar:   
+    def __init__(self,  E, A, I, *args, **kwargs):
+        self.list_nodes = [node for node in args]
+        L, self.theta = self.definir_geometria()
+
+        self.ke_ = sp.Matrix([[E * A / L, 0, 0, -E * A / L, 0, 0],
                  [0, 12 * E * I / (L **3), 6 * E * I / (L ** 2), 0, -12 * E * I / (L **3), 6 * E * I / (L ** 2)],
                  [0, 6 * E * I / (L ** 2), 4 * E * I / L, 0, -6 * E * I / (L ** 2), 2 * E * I / L],
                  [-E * A / L, 0, 0, E * A / L, 0, 0],
@@ -56,29 +57,25 @@ class Barra:
                  ])
         c = sp.cos(self.theta)
         s = sp.sin(self.theta)
-        T = sp.Matrix([[c, -s, 0, 0, 0, 0,],
-                        [s, c, 0, 0, 0, 0,],
+        self.T = sp.Matrix([[c, s, 0, 0, 0, 0,],
+                        [-s, c, 0, 0, 0, 0,],
                         [0, 0, 1, 0, 0, 0],
-                        [0, 0, 0, c, -s, 0],
-                        [0, 0, 0, s, c, 0],
+                        [0, 0, 0, c, s, 0],
+                        [0, 0, 0, -s, c, 0],
                         [0, 0, 0, 0, 0, 1]
-        ]).T
+        ])
         self.A, self.E, self.L, self.I = A, E, L, I
-        self.ke = T.T*ke_*T
-   
-    def atribuir_valores(self, area, elasticity, inertia):
-        length, theta = self.definir_geometria()
-        self.ke = self.ke.subs([(self.A, area),
-                                (self.E, elasticity),
-                                (self.L, length),
-                                (self.I, inertia),
-                                (self.theta, theta)])
-        self.A = self.A.subs(self.A, area)
-        self.E = self.E.subs(self.E, elasticity)
-        self.I = self.I.subs(self.I, inertia)       
+        self.ke = self.T.T * self.ke_ * self.T
+
+        self.get_forces_vector()
+        self.atribuir_graus()
+
+    def get_forces_vector(self):
+        node1, node2 = self.list_nodes
+        self.f = np.array([node1.fx, node1.fy, node1.mz, node2.fx, node2.fy, node2.mz])    
 
     def definir_geometria(self):
-        node1, node2 = self.barra_nos
+        node1, node2 = self.list_nodes
         x1, y1, x2, y2 = node1.x, node1.y, node2.x, node2.y
         length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
         if ((x2 - x1) == 0) and ((y2 - y1) > 0):
@@ -95,18 +92,19 @@ class Barra:
         return length, theta
 
     def atribuir_nos(self, primeiro_no, segundo_no):
-        self.barra_nos = [primeiro_no, segundo_no]
+        self.list_nodes = [primeiro_no, segundo_no]
 
     def atribuir_graus(self):
-        lista_graus_temp = []
-        for node in self.barra_nos:
+        self.lista_graus = []
+        for node in self.list_nodes:
             for grau in node.lista_graus:
-                lista_graus_temp.append(grau)
-        self.ke = self.ke.row_insert(0, sp.Matrix([lista_graus_temp]))
+                self.lista_graus.append(grau)
+        self.ke = self.ke.row_insert(0, sp.Matrix([self.lista_graus]))
+        lista_graus_temp = self.lista_graus.copy()
         lista_graus_temp.append(0)
         self.ke = self.ke.col_insert(0, sp.Matrix(sorted(lista_graus_temp)))
 
-class Viga:
+class Beam:
     def __init__(self, *args, **kwargs):
         if 'lista_barras' in kwargs:
             self.lista_barras = kwargs['lista_barras']
@@ -115,16 +113,16 @@ class Viga:
         self.lista_nos_idx = []
         self.lista_nos = []
         for barra in self.lista_barras:
-            if barra.barra_nos[0] not in self.lista_nos:
-                self.lista_nos.append(barra.barra_nos[0])
-            if barra.barra_nos[1] not in self.lista_nos:
-                self.lista_nos.append(barra.barra_nos[1])
+            if barra.list_nodes[0] not in self.lista_nos:
+                self.lista_nos.append(barra.list_nodes[0])
+            if barra.list_nodes[1] not in self.lista_nos:
+                self.lista_nos.append(barra.list_nodes[1])
 
         for barra in self.lista_barras:
-            if barra.barra_nos[0].indice not in self.lista_nos_idx:
-                self.lista_nos_idx.append(barra.barra_nos[0].indice)
-            if barra.barra_nos[1].indice not in self.lista_nos_idx:
-                self.lista_nos_idx.append(barra.barra_nos[1].indice)
+            if barra.list_nodes[0].indice not in self.lista_nos_idx:
+                self.lista_nos_idx.append(barra.list_nodes[0].indice)
+            if barra.list_nodes[1].indice not in self.lista_nos_idx:
+                self.lista_nos_idx.append(barra.list_nodes[1].indice)
         self.quant_nos = max(self.lista_nos_idx)
         self.quant_barras = len(self.lista_barras)
         self.k_global = sp.Matrix.zeros(3 * self.quant_nos, 3 * self.quant_nos)
@@ -132,7 +130,7 @@ class Viga:
     def calcular_matriz_rigidez(self):
         for barra in self.lista_barras:
             lista_graus_temp = []
-            for node in barra.barra_nos:
+            for node in barra.list_nodes:
                 for grau in node.lista_graus:
                     lista_graus_temp.append(grau - 1)
             for i, grau1 in enumerate(lista_graus_temp):
@@ -156,114 +154,134 @@ class Viga:
             if indice == 0:
                 self.vetor_forcas = np.array([[node.fx]])
                 self.vetor_forcas = np.vstack((self.vetor_forcas, np.array([[node.fy]])))
-                self.vetor_forcas = np.vstack((self.vetor_forcas, np.array([[node.mt]])))
+                self.vetor_forcas = np.vstack((self.vetor_forcas, np.array([[node.mz]])))
             else:
                 self.vetor_forcas = np.vstack((self.vetor_forcas, np.array([[node.fx]])))
                 self.vetor_forcas = np.vstack((self.vetor_forcas, np.array([[node.fy]])))
-                self.vetor_forcas = np.vstack((self.vetor_forcas, np.array([[node.mt]])))
+                self.vetor_forcas = np.vstack((self.vetor_forcas, np.array([[node.mz]])))
         self.vetor_forcas = sp.Matrix(self.vetor_forcas)
     
     def calcular_solucao(self):
-        # self.sistema_eq = self.k_global * self.vetor_deslocamentos -  self.vetor_forcas
-        self.sistema_eq = np.dot(self.k_global, self.vetor_deslocamentos) -  self.vetor_forcas
-        self.solucao = sp.solve(self.sistema_eq)
+        list_positions = []
+        for idx, u in enumerate(self.vetor_deslocamentos):
+            if u == np.nan or u == sp.nan:
+                list_positions.append(idx)
+        tam = len(list_positions)
+        self.k_shorted = np.zeros(shape=(tam, tam))
+        
+        for idx1, pos1 in enumerate(list_positions):
+            for idx2, pos2 in enumerate(list_positions):
+                self.k_shorted[idx1, idx2] = self.k_global[pos1, pos2]
 
-        ## Pesquisar alternativas ao sp.solve
+        f_shorted = []
+        for idx, pos in enumerate(list_positions):
+            f_shorted.append(self.vetor_forcas[pos])
+        
+        d_shorted = np.dot(np.linalg.inv(self.k_shorted), f_shorted)
+
+        counter_temp = 0
+        for idx, value in enumerate(self.vetor_deslocamentos):
+            if value == np.nan or value == sp.nan:
+                self.vetor_deslocamentos[idx] = d_shorted[counter_temp]
+                counter_temp += 1
+
+    def set_displacements(self):
+        for bar in self.lista_barras:
+            lista_graus = bar.lista_graus
+            node1, node2 = bar.list_nodes
+
+            node1.ux = self.vetor_deslocamentos[lista_graus[0] - 1]
+            node1.uy = self.vetor_deslocamentos[lista_graus[1] - 1]
+            node1.ang = self.vetor_deslocamentos[lista_graus[2] - 1]
+
+            node2.ux = self.vetor_deslocamentos[lista_graus[3] - 1]
+            node2.uy = self.vetor_deslocamentos[lista_graus[4] - 1]
+            node2.ang = self.vetor_deslocamentos[lista_graus[5] - 1]
     
-    def atribuir_deslocamentos_calculados(self):
-        for indice, node in enumerate(self.lista_nos):
-            ux, uy, ang, fx, fy, mt = sp.symbols([f'ux{indice + 1}', f'uy{indice + 1}', f'ang{indice + 1}',
-            f'fx{indice + 1}', f'fy{indice + 1}', f'mt{indice + 1}'])
-            if ux in self.solucao.keys():
-                setattr(self.lista_nos[indice], 'ux', self.solucao[ux])
-            if uy in self.solucao.keys():
-                setattr(self.lista_nos[indice], 'uy', self.solucao[uy])
-            if ang in self.solucao.keys():
-                setattr(self.lista_nos[indice], 'ang', self.solucao[ang])
-            if fx in self.solucao.keys():
-                setattr(self.lista_nos[indice], 'fx', self.solucao[fx])
-            if fy in self.solucao.keys():
-                setattr(self.lista_nos[indice], 'fy', self.solucao[fy])
-            if mt in self.solucao.keys():
-                setattr(self.lista_nos[indice], 'mt', self.solucao[mt])
+        for bar in self.lista_barras:
+            node1, node2 = bar.list_nodes
+            d_global = np.array([node1.ux, node1.uy, node1.ang,
+                                 node2.ux, node2.uy, node2.ang])
+            
+            bar.vetor_deslocamentos = np.dot(bar.T, d_global)
     
-    def atribuir_esforcos_internos(self):
-        for barra in self.lista_barras:
-            node1 = barra.barra_nos[0]
-            node2 = barra.barra_nos[1]
+    def set_internal_forces(self):
+        for bar in self.lista_barras:
+            bar.vetor_esforcos = np.dot(bar.ke_, bar.vetor_deslocamentos)
 
-            displacement_vector = np.array([node1.ux,
-                                            node1.uy,
-                                            node1.ang,
-                                            node2.ux,
-                                            node2.uy,
-                                            node2.ang])
-            
-            barra_temp = np.zeros(shape=(6,6))
-            for i in range(len(barra_temp[0,:])):
-                for j in range(len(barra_temp[:, 0])):
-                    barra_temp[i, j] = barra.ke[i + 1, j + 1]
+            # lista_graus = bar.lista_graus
+            # node1, node2 = bar.list_nodes
 
-            internal_forces_vector = np.dot(barra_temp, displacement_vector)
-            
-            setattr(node1, 'ex', internal_forces_vector[0])
-            setattr(node1, 'ey', internal_forces_vector[1])
-            setattr(node1, 'mf', internal_forces_vector[2])
-            setattr(node2, 'ex', internal_forces_vector[3])
-            setattr(node2, 'ey', internal_forces_vector[4])
-            setattr(node2, 'mf', internal_forces_vector[5])
+            # node1.ex = 
 
     def solver_viga(self):
         self.calcular_matriz_rigidez()
         self.calcular_vetor_deslocamentos()
         self.calcular_vetor_forcas()
         self.calcular_solucao()
-        self.atribuir_deslocamentos_calculados()
-        self.atribuir_esforcos_internos()
+        self.set_displacements()
+        self.set_internal_forces()
 
-    def plotar_deslocamentos(self):
-        lista_x = [node.x for node in self.lista_nos]
-        lista_y = [node.y for node in self.lista_nos]
-        lista_uy = []
-        for indice, node in enumerate(self.lista_nos):
-            lista_uy.append(vars(self.lista_nos[indice])['uy'] * 1e3)
-        array_x = np.array(lista_x, dtype=float)
-        array_uy = np.array(lista_uy, dtype=float)
-        plt.plot(array_x, lista_y)
-        plt.plot(lista_x, lista_uy)
+    def plot_displacement(self):
+        for bar in self.lista_barras:
+            x0 = [(node.x) for node in bar.list_nodes]
+            y0 = [(node.y) * 1e3 for node in bar.list_nodes]
+            x = [(node.x + node.ux) for node in bar.list_nodes]
+            y = [(node.y + node.uy) * 1e3 for node in bar.list_nodes]
+            plt.plot(x0, y0, color = 'blue', lw = 1)
+            plt.plot(x, y, color = 'red', lw = 1, ls = '--')
 
         plt.title('Deformação da viga')
         plt.xlabel('Comprimento (m)')
         plt.ylabel('Deformação (mm)')
-        plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
+        # plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
         plt.show()
     
-    def plotar_esforco_normal(self):
-        array_x = np.array([float(node.x) for node in self.lista_nos])
-        array_ex = np.array([float(node.ex * 1e-3) for node in self.lista_nos])
-        plt.plot(array_x, array_ex)
-        plt.fill_between(array_x, array_ex, where=(array_ex >= 0), color = 'skyblue', interpolate= True)
-        plt.fill_between(array_x, array_ex, where=(array_ex < 0), color = 'lightcoral', interpolate= True)
-        plt.title('Esforço Cortante')
+    def plot_axial_force(self):
+        for bar in self.lista_barras:
+            x0 = [(node.x) for node in bar.list_nodes]
+            y0 = [(node.y) * 1e3 for node in bar.list_nodes]
+            ex = [- bar.vetor_esforcos[0] * 1e-3, bar.vetor_esforcos[3] * 1e-3]
+
+            plt.plot(x0, y0, color = 'blue', lw = 1)
+            plt.plot(x0, ex, color = 'red', lw = 1, ls = '--')
+        
+        plt.title('Diagrama de Esforço Normal')
         plt.xlabel('Comprimento (m)')
-        plt.ylabel('Força (kN)')
-        plt.grid()
+        plt.ylabel('Esforço Normal (kN)')
+        # plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
+        plt.show()
+    
+    def plot_shear_force(self):
+        for bar in self.lista_barras:
+            x0 = [(node.x) for node in bar.list_nodes]
+            y0 = [(node.y) * 1e3 for node in bar.list_nodes]
+            ey = [bar.vetor_esforcos[1] * 1e-3, - bar.vetor_esforcos[4] * 1e-3]
+
+            plt.plot(x0, y0, color = 'blue', lw = 1)
+            plt.plot(x0, ey, color = 'red', lw = 1, ls = '--')
+        
+        plt.title('Diagrama de Esforço Cortante')
+        plt.xlabel('Comprimento (m)')
+        plt.ylabel('Esforço Cortante (kN)')
         # plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
         plt.show()
 
-    def plotar_esforco_cortante(self):
-        array_x = np.array([float(node.x) for node in self.lista_nos])
-        array_ey = np.array([float(node.ey * 1e-3) for node in self.lista_nos])
-        plt.plot(array_x, array_ey)
-        plt.fill_between(array_x, array_ey, where=(array_ey >= 0), color = 'skyblue', interpolate= True)
-        plt.fill_between(array_x, array_ey, where=(array_ey < 0), color = 'lightcoral', interpolate= True)
-        plt.title('Esforço Cortante')
+    def plot_bending_moment(self):
+        for bar in self.lista_barras:
+            x0 = [(node.x) for node in bar.list_nodes]
+            y0 = [(node.y) * 1e3 for node in bar.list_nodes]
+            mf = [- bar.vetor_esforcos[2] * 1e-3, bar.vetor_esforcos[5] * 1e-3]
+
+            plt.plot(x0, y0, color = 'blue', lw = 1)
+            plt.plot(x0, mf, color = 'red', lw = 1, ls = '--')
+        
+        plt.title('Diagrama de Momento Fletor')
         plt.xlabel('Comprimento (m)')
-        plt.ylabel('Força (kN)')
-        plt.grid()
+        plt.ylabel('Momento Fletor (kNm)')
         # plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
         plt.show()
-    
+
     def plotar_momento_fletor(self):
         array_x = np.array([float(node.x) for node in self.lista_nos])
         array_mf = np.array([float(node.mf * 1e-3) for node in self.lista_nos])
@@ -276,3 +294,41 @@ class Viga:
         plt.grid()
         # plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
         plt.show()
+
+## Exemplo
+
+# node1 = Node(0, 0, 1)
+# node1.set_force(fx = 0, fy = 0, mz = 0)
+# node1.set_displacement(ux = 0, uy = 0)
+
+# node2 = Node(0.25, 0, 2)
+# node2.set_force(fx = 0, fy = -10e3 / 3, mz = 0)
+# node2.set_displacement()
+
+# node3 = Node(0.5, 0, 3)
+# node3.set_force(fx = 10e3, fy = -10e3 / 3, mz = 0)
+# node3.set_displacement()
+
+# node4 = Node(0.75, 0, 4)
+# node4.set_force(fx = 0, fy = -10e3 / 3, mz = 0)
+# node4.set_displacement()
+
+# node5 = Node(1, 0, 5)
+# node5.set_force(fx = 0, fy = 0, mz = 0)
+# node5.set_displacement(ux = 0, uy = 0)
+
+# bar1 = Bar(200e9, 8e-4, 1.067e-7, node1, node2)
+
+# bar2 = Bar(200e9, 8e-4, 1.067e-7, node2, node3)
+
+# bar3 = Bar(200e9, 8e-4, 1.067e-7, node3, node4)
+
+# bar4 = Bar(200e9, 8e-4, 1.067e-7, node4, node5)
+
+# beam1 = Beam(bar1, bar2, bar3, bar4)
+# beam1.solver_viga()
+# beam1.plot_displacement()
+# beam1.plot_axial_force()
+# beam1.plot_shear_force()
+# beam1.plot_bending_moment()
+

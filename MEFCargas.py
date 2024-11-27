@@ -2,7 +2,7 @@ import numpy as np
 
 class CargaPontual:
     def __init__(self, fx, fy, mt, *args, **kwargs):
-        self.yype = 'pontual'
+        self.type = 'pontual'
         self.fx = fx
         self.fy = fy
         self.mt = mt
@@ -38,7 +38,6 @@ class CargaUniforme:
         self.qy = qy
         self.mt = mt
 
-        # self.length = np.sqrt((self.x2 - self.x1) ** 2 + (self.y2 - self.y1) ** 2)
         self.length = ((self.x2 - self.x1) ** 2 + (self.y2 - self.y1) ** 2) ** (1 / 2)
     
     def definir_nos(self, lista_nos):

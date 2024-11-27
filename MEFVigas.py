@@ -1,8 +1,10 @@
 import numpy as np
 import sympy as sp
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import pandas as pd
 
-# Last update: 2024 09 01
+# Last update: 2024 11 17
 
 class Node:
     def __init__(self, x, y, indice):
@@ -209,11 +211,6 @@ class Beam:
         for bar in self.lista_barras:
             bar.vetor_esforcos = np.dot(bar.ke_, bar.vetor_deslocamentos)
 
-            # lista_graus = bar.lista_graus
-            # node1, node2 = bar.list_nodes
-
-            # node1.ex = 
-
     def solver_viga(self):
         self.calcular_matriz_rigidez()
         self.calcular_vetor_deslocamentos()
@@ -223,77 +220,150 @@ class Beam:
         self.set_internal_forces()
 
     def plot_displacement(self):
+        # fig = go.Figure()
         for bar in self.lista_barras:
+            scale = 1000
             x0 = [(node.x) for node in bar.list_nodes]
-            y0 = [(node.y) * 1e3 for node in bar.list_nodes]
-            x = [(node.x + node.ux) for node in bar.list_nodes]
-            y = [(node.y + node.uy) * 1e3 for node in bar.list_nodes]
+            y0 = [(node.y) for node in bar.list_nodes]
+            x = [(node.x + node.ux * scale) for node in bar.list_nodes]
+            y = [(node.y + node.uy * scale) for node in bar.list_nodes]
             plt.plot(x0, y0, color = 'blue', lw = 1)
             plt.plot(x, y, color = 'red', lw = 1, ls = '--')
+            plt.axis('equal')
 
         plt.title('Deformação da viga')
         plt.xlabel('Comprimento (m)')
-        plt.ylabel('Deformação (mm)')
-        # plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
+        plt.ylabel('Altura (m)')
         plt.show()
+
+    def plot_displacement2(self):
+        fig = go.Figure()
+        scale = 1000
+
+        for bar in self.lista_barras:
+            x0 = np.array([float(node.x) for node in bar.list_nodes])
+            y0 = np.array([float(node.y) for node in bar.list_nodes])
+
+            x = np.array([float(node.x + node.ux * scale) for node in bar.list_nodes])
+            y = np.array([float(node.y + node.uy * scale) for node in bar.list_nodes])
+
+            fig.add_trace(go.Scatter(
+                x=x0, y=y0,
+                mode='lines',
+                line=dict(color='blue', width=1)
+            ))
+
+            fig.add_trace(go.Scatter(
+                x=x, y=y,
+                mode='lines',
+                line=dict(color='red', width=1, dash='dash')
+            ))
+
+        fig.update_layout(
+            title='Deformação da viga',
+            xaxis_title='Comprimento (m)',
+            yaxis_title='Altura (m)',
+            template='plotly_white',
+            xaxis=dict(scaleanchor='y'),
+            showlegend=False
+        )
+
+        fig.show()
     
     def plot_axial_force(self):
         for bar in self.lista_barras:
+            scale = 0.005
             x0 = [(node.x) for node in bar.list_nodes]
-            y0 = [(node.y) * 1e3 for node in bar.list_nodes]
+            y0 = [(node.y)for node in bar.list_nodes]
             ex = [- bar.vetor_esforcos[0] * 1e-3, bar.vetor_esforcos[3] * 1e-3]
-
+            exx = [xi + exi * (- np.sin(bar.theta)) * scale for xi, exi in zip(x0, ex)]
+            exy = [yi + exi * (np.cos(bar.theta)) * scale for yi, exi in zip(y0, ex)]
             plt.plot(x0, y0, color = 'blue', lw = 1)
-            plt.plot(x0, ex, color = 'red', lw = 1, ls = '--')
+            plt.plot(exx, exy, color = 'red', lw = 1, ls = '--')
+            plt.axis('equal')
         
         plt.title('Diagrama de Esforço Normal')
         plt.xlabel('Comprimento (m)')
-        plt.ylabel('Esforço Normal (kN)')
-        # plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
+        plt.ylabel('Altura (m)')
         plt.show()
     
     def plot_shear_force(self):
         for bar in self.lista_barras:
+            scale = 0.01
             x0 = [(node.x) for node in bar.list_nodes]
-            y0 = [(node.y) * 1e3 for node in bar.list_nodes]
+            y0 = [(node.y) for node in bar.list_nodes]
             ey = [bar.vetor_esforcos[1] * 1e-3, - bar.vetor_esforcos[4] * 1e-3]
-
+            eyx = [xi + eyi * (- np.sin(bar.theta)) * scale for xi, eyi in zip(x0, ey)]
+            eyy = [yi + eyi * (np.cos(bar.theta)) * scale for yi, eyi in zip(y0, ey)]
             plt.plot(x0, y0, color = 'blue', lw = 1)
-            plt.plot(x0, ey, color = 'red', lw = 1, ls = '--')
+            plt.plot(eyx, eyy, color = 'red', lw = 1, ls = '--')
+            plt.axis('equal')
         
         plt.title('Diagrama de Esforço Cortante')
         plt.xlabel('Comprimento (m)')
-        plt.ylabel('Esforço Cortante (kN)')
-        # plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
+        plt.ylabel('Altura (m)')
         plt.show()
 
     def plot_bending_moment(self):
         for bar in self.lista_barras:
-            x0 = [(node.x) for node in bar.list_nodes]
-            y0 = [(node.y) * 1e3 for node in bar.list_nodes]
-            mf = [- bar.vetor_esforcos[2] * 1e-3, bar.vetor_esforcos[5] * 1e-3]
-
+            scale = 0.05
+            x0 = np.array([(node.x) for node in bar.list_nodes])
+            y0 = np.array([(node.y) for node in bar.list_nodes])
+            mf = np.array([- bar.vetor_esforcos[2] * 1e-3, bar.vetor_esforcos[5] * 1e-3])
+            mfx = [xi + mfi * (np.sin(bar.theta)) * scale for xi, mfi in zip(x0, mf)]
+            mfy = [yi + mfi * (- np.cos(bar.theta)) * scale for yi, mfi in zip(y0, mf)]
             plt.plot(x0, y0, color = 'blue', lw = 1)
-            plt.plot(x0, mf, color = 'red', lw = 1, ls = '--')
+            plt.plot(mfx, mfy, color = 'red', lw = 1, ls = '--')
+            plt.axis('equal')
+            # plt.gca().invert_yaxis()
         
         plt.title('Diagrama de Momento Fletor')
         plt.xlabel('Comprimento (m)')
-        plt.ylabel('Momento Fletor (kNm)')
-        # plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
+        plt.ylabel('Altura (m)')
         plt.show()
 
-    def plotar_momento_fletor(self):
-        array_x = np.array([float(node.x) for node in self.lista_nos])
-        array_mf = np.array([float(node.mf * 1e-3) for node in self.lista_nos])
-        plt.plot(array_x, array_mf)
-        plt.fill_between(array_x, array_mf, where=(array_mf >= 0), color = 'skyblue', interpolate= True)
-        plt.fill_between(array_x, array_mf, where=(array_mf < 0), color = 'lightcoral', interpolate= True)
-        plt.title('Momento Fletor')
-        plt.xlabel('Comprimento (m)')
-        plt.ylabel('Momento Fletor (kNm)')
-        plt.grid()
-        # plt.ylim(bottom = 10 * np.min(array_uy), top = 10 * abs(np.min(array_uy)))
-        plt.show()
+    def export_data(self, **kwargs):
+        if 'name' in kwargs:
+            name = kwargs['name']
+        else:
+            name = 'file'
+        for idx, bar in enumerate(self.lista_barras):
+            if idx == 0:
+                self.x0 = np.array([float(node.x) for node in bar.list_nodes])
+                self.y0 = np.array([float(node.y) for node in bar.list_nodes])
+                self.ux = np.array([float(node.ux) for node in bar.list_nodes])
+                self.uy = np.array([float(node.uy) for node in bar.list_nodes])
+                self.ex = [float(- bar.vetor_esforcos[0] * 1e-3), float(bar.vetor_esforcos[3] * 1e-3)]
+                self.ey = [float(bar.vetor_esforcos[1] * 1e-3), float(- bar.vetor_esforcos[4] * 1e-3)]
+                self.mf = np.array([float(- bar.vetor_esforcos[2] * 1e-3), float(bar.vetor_esforcos[5] * 1e-3)])
+            
+            else:
+                self.x0 = np.hstack([self.x0, np.array([float(node.x) for node in bar.list_nodes])])
+                self.y0 = np.hstack([self.y0, np.array([float(node.y) for node in bar.list_nodes])])
+                self.ux = np.hstack([self.ux, np.array([float(node.ux) for node in bar.list_nodes])])
+                self.uy = np.hstack([self.uy, np.array([float(node.uy) for node in bar.list_nodes])])
+                self.ex = np.hstack([self.ex, [float(- bar.vetor_esforcos[0] * 1e-3), float(bar.vetor_esforcos[3] * 1e-3)]])
+                self.ey = np.hstack([self.ey, [float(bar.vetor_esforcos[1] * 1e-3), float(- bar.vetor_esforcos[4] * 1e-3)]])
+                self.mf = np.hstack([self.mf, np.array([float(- bar.vetor_esforcos[2] * 1e-3), float(bar.vetor_esforcos[5] * 1e-3)])])
+
+        self.data = np.array([self.x0,
+                              self.y0,
+                              self.ux,
+                              self.uy,
+                              self.ex,
+                              self.ey,
+                              self.mf])
+    
+        self.dict_data = {'x' : self.x0.tolist(),
+                          'y' : self.y0.tolist(),
+                          'ux' : self.ux.tolist(),
+                          'uy' : self.uy.tolist(),
+                          'ex' : self.ex.tolist(),
+                          'ey' : self.ey.tolist(),
+                          'mf' : self.mf.tolist()}
+        
+        df_data = pd.DataFrame(self.dict_data)
+        df_data.to_json(f'{name}.json', indent = 2)
 
 ## Exemplo
 
@@ -317,13 +387,19 @@ class Beam:
 # node5.set_force(fx = 0, fy = 0, mz = 0)
 # node5.set_displacement(ux = 0, uy = 0)
 
-# bar1 = Bar(200e9, 8e-4, 1.067e-7, node1, node2)
+# mod_elast = 200e9
+# b = 0.2
+# h = 0.4
+# area = b * h
+# inercia = b * h ** 3 / 12
 
-# bar2 = Bar(200e9, 8e-4, 1.067e-7, node2, node3)
+# bar1 = Bar(mod_elast, area, inercia, node1, node2)
 
-# bar3 = Bar(200e9, 8e-4, 1.067e-7, node3, node4)
+# bar2 = Bar(mod_elast, area, inercia, node2, node3)
 
-# bar4 = Bar(200e9, 8e-4, 1.067e-7, node4, node5)
+# bar3 = Bar(mod_elast, area, inercia, node3, node4)
+
+# bar4 = Bar(mod_elast, area, inercia, node4, node5)
 
 # beam1 = Beam(bar1, bar2, bar3, bar4)
 # beam1.solver_viga()
@@ -331,4 +407,3 @@ class Beam:
 # beam1.plot_axial_force()
 # beam1.plot_shear_force()
 # beam1.plot_bending_moment()
-

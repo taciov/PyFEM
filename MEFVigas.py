@@ -4,14 +4,22 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import pandas as pd
 
-# Last update: 2024 11 17
+# Last update: 2025 01 09
 
 class Node:
-    def __init__(self, x, y, indice):
-        self.indice = indice
-        self.lista_graus = [3 * indice - 2, 3 * indice - 1, 3 * indice]
+
+    list_nodes = []
+
+    def __init__(self, x, y):
+
+        Node.list_nodes.append(self)
+        self.indice = len(Node.list_nodes)
+        self.lista_graus = [3 * self.indice - 2, 3 * self.indice - 1, 3 * self.indice]
         self.x = x
         self.y = y
+
+        self.set_force()
+        self.set_displacement()
 
     def set_force(self, **kwargs):
         if 'fx' in kwargs:
@@ -40,13 +48,18 @@ class Node:
             self.ang = float(kwargs['ang'])
         else:
             self.ang = np.nan
+    
+    @classmethod
+    def clear_list_nodes(cls):
+        cls.list_nodes = []
 
-    def substituir_coordenadas(self, x, y):
-        self.x = x
-        self.y = y
+class Bar:
 
-class Bar:   
+    list_bars = []
+
     def __init__(self,  E, A, I, *args, **kwargs):
+
+        Bar.list_bars.append(self)
         self.list_nodes = [node for node in args]
         L, self.theta = self.definir_geometria()
 
@@ -105,6 +118,10 @@ class Bar:
         lista_graus_temp = self.lista_graus.copy()
         lista_graus_temp.append(0)
         self.ke = self.ke.col_insert(0, sp.Matrix(sorted(lista_graus_temp)))
+    
+    @classmethod
+    def clear_list_bars(cls):
+        cls.list_bars = []
 
 class Beam:
     def __init__(self, *args, **kwargs):

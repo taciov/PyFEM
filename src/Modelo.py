@@ -63,7 +63,7 @@ class Modelo:
         carga_temp = cd.CargaUniforme(qx, qy, barra)
         self.lista_cargas.append(carga_temp)
     
-    ## CRIAR CLASSE IDENT_BARRA PARA QUE EU CONSIGA SELECINAR A BARRA A PARTIR DE [X1, Y1], [X2, Y2]
+    ## CRIAR FUNCAO IDENT_BARRA PARA QUE EU CONSIGA SELECINAR A BARRA A PARTIR DE [X1, Y1], [X2, Y2]
 
     def criar_modelo(self):
         self.viga = vg.Beam(lista_barras = self.lista_barras)

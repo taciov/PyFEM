@@ -7,6 +7,7 @@ import pandas as pd
 # Last update: 2025 01 09
 
 class Beam:
+    
     def __init__(self, *args, **kwargs):
         if 'lista_barras' in kwargs:
             self.lista_barras = kwargs['lista_barras']
@@ -110,6 +111,16 @@ class Beam:
     def set_internal_forces(self):
         for bar in self.lista_barras:
             bar.vetor_esforcos = np.dot(bar.ke_, bar.vetor_deslocamentos)
+
+            for carga in bar.lista_cargas:
+
+                bar.vetor_esforcos[0] -= carga.qx * carga.length / 2
+                bar.vetor_esforcos[1] -= carga.qy * carga.length / 2
+                bar.vetor_esforcos[2] -= (carga.qy * carga.lx ** 2 / 12 + carga.qx * carga.ly ** 2 / 12)
+
+                bar.vetor_esforcos[3] -= carga.qx * carga.length / 2
+                bar.vetor_esforcos[4] -= carga.qy * carga.length / 2
+                bar.vetor_esforcos[5] += (carga.qy * carga.lx ** 2 / 12 + carga.qx * carga.ly ** 2 / 12)
 
     def solver_viga(self):
         self.calcular_matriz_rigidez()
@@ -264,46 +275,3 @@ class Beam:
         
         df_data = pd.DataFrame(self.dict_data)
         df_data.to_json(f'{name}.json', indent = 2)
-
-## Exemplo
-
-# node1 = Node(0, 0, 1)
-# node1.set_force(fx = 0, fy = 0, mz = 0)
-# node1.set_displacement(ux = 0, uy = 0)
-
-# node2 = Node(0.25, 0, 2)
-# node2.set_force(fx = 0, fy = -10e3 / 3, mz = 0)
-# node2.set_displacement()
-
-# node3 = Node(0.5, 0, 3)
-# node3.set_force(fx = 10e3, fy = -10e3 / 3, mz = 0)
-# node3.set_displacement()
-
-# node4 = Node(0.75, 0, 4)
-# node4.set_force(fx = 0, fy = -10e3 / 3, mz = 0)
-# node4.set_displacement()
-
-# node5 = Node(1, 0, 5)
-# node5.set_force(fx = 0, fy = 0, mz = 0)
-# node5.set_displacement(ux = 0, uy = 0)
-
-# mod_elast = 200e9
-# b = 0.2
-# h = 0.4
-# area = b * h
-# inercia = b * h ** 3 / 12
-
-# bar1 = Bar(mod_elast, area, inercia, node1, node2)
-
-# bar2 = Bar(mod_elast, area, inercia, node2, node3)
-
-# bar3 = Bar(mod_elast, area, inercia, node3, node4)
-
-# bar4 = Bar(mod_elast, area, inercia, node4, node5)
-
-# beam1 = Beam(bar1, bar2, bar3, bar4)
-# beam1.solver_viga()
-# beam1.plot_displacement()
-# beam1.plot_axial_force()
-# beam1.plot_shear_force()
-# beam1.plot_bending_moment()

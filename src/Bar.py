@@ -6,9 +6,11 @@ import numpy as np
 class Barra:
 
     list_bars = []
+    
 
     def __init__(self, E, A, I, *args, **kwargs):
 
+        self.lista_cargas = []
         Barra.list_bars.append(self)
         self.list_nodes = [node for node in args]
         L, self.theta = self.definir_geometria()

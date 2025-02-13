@@ -1,7 +1,7 @@
 from src import Node as nd
 from src import Apoio as ap
 from src import Bar as bar
-from src import MEFVigas as vg
+from src import Beam as vg
 from src import CargaPontual as cp
 from src import CargaDistribuida as cd
 
@@ -39,6 +39,7 @@ class Modelo:
         
     def criar_barra(self, E, A, I, node1, node2):
         barra_temp = bar.Barra(E, A, I, node1, node2)
+        bar.lista_cargas.append(barra_temp)
         self.lista_barras.append(barra_temp)
         
     def criar_barras(self, E, A, I):

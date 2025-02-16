@@ -79,16 +79,18 @@ class Analysis:
             for idx2, pos2 in enumerate(list_positions):
                 self.k_shorted[idx1, idx2] = self.k_global[pos1, pos2]
 
-        f_shorted = []
+        self.f_shorted = []
         for idx, pos in enumerate(list_positions):
-            f_shorted.append(self.vetor_forcas[pos])
+            self.f_shorted.append(self.vetor_forcas[pos])
         
-        d_shorted = np.dot(np.linalg.inv(self.k_shorted), f_shorted)
+        # print(self.f_shorted)
+
+        self.d_shorted = np.dot(np.linalg.inv(self.k_shorted), self.f_shorted)
 
         counter_temp = 0
         for idx, value in enumerate(self.vetor_deslocamentos):
             if np.isnan(value) == True:
-                self.vetor_deslocamentos[idx] = d_shorted[counter_temp]
+                self.vetor_deslocamentos[idx] = self.d_shorted[counter_temp]
                 counter_temp += 1
 
     def set_displacements(self):

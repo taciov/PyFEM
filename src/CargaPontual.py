@@ -28,3 +28,13 @@ class CargaPontual:
 
         CargaPontual.list_carga_pontual.append(self)
         node.get_forces_vector()
+
+class CargaPontual3(CargaPontual):
+
+    list_carga_pontual = []
+
+    def __init__(self, fx, fy, mz, node):
+
+        super().__init__(fx, fy, 0, 0, 0, mz, node)
+
+        CargaPontual3.list_carga_pontual.append(self)

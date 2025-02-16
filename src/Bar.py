@@ -39,7 +39,7 @@ class Barra:
 
     def get_forces_vector(self):
         node1, node2 = self.list_nodes
-        self.f = np.array([node1.fx, node1.fy, node1.mz, node2.fx, node2.fy, node2.mz])    
+        self.f = np.array([node1.fx, node1.fy, node1.mz, node2.fx, node2.fy, node2.mz])  
 
     def definir_geometria(self):
         node1, node2 = self.list_nodes
@@ -64,8 +64,9 @@ class Barra:
     def atribuir_graus(self):
         self.lista_graus = []
         for node in self.list_nodes:
-            for grau in node.lista_graus:
-                self.lista_graus.append(grau)
+            for idx, grau in enumerate(node.lista_graus):
+                self.lista_graus.append(grau) if idx not in [1, 3, 4] else None
+        print(self.lista_graus)
         self.ke = self.ke.row_insert(0, sp.Matrix([self.lista_graus]))
         lista_graus_temp = self.lista_graus.copy()
         lista_graus_temp.append(0)

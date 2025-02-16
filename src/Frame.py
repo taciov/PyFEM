@@ -1,5 +1,3 @@
-# from src import Node as nd
-
 import sympy as sp
 import numpy as np
 
@@ -121,3 +119,15 @@ class Frame:
     @classmethod
     def clear_list_bars(cls):
         cls.list_bars = []
+
+class Frame2D(Frame):
+
+    list_bars = []
+
+    def __init__(self, A, I, E, * args):
+
+        # list_nodes = [node for node in args]
+
+        super().__init__(A, I*1e9, I, I*1e9, E, E*1e9, args[0], args[1])
+        # super().__init__(A, 0, I, 0, E, 0, args[0], args[1])
+

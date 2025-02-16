@@ -28,19 +28,33 @@ class Frame:
             [0, 0, -E*6*L*Iy / L**3, 0, E*2*L**2*Iy / L**3, 0, 0, 0, E*6*L*Iy / L**3, 0, E*4*L**2*Iy / L**3, 0],
             [0, E*6*L*Iz / L**3, 0, 0, 0, E*2*L**2*Iz / L**3, 0, -E*6*L*Iz / L**3, 0, 0, 0, E*4*L**2*Iz / L**3]
 ])
-            ## INSERIR A MATRIZ DE ROTAÇÃO CORRETAMENTE
 
-        a11 = self.theta_x
-        a12 = self.theta_y
-        a13 = self.theta_z
+        if self.theta_x ==0 and self.theta_z == 0:
+            a11 = 0
+            a12 = self.theta_y
+            a13 = 0
 
-        a21 = (- self.theta_x * self.theta_y * np.cos(self.rotate) - self.theta_z * np.sin(self.rotate)) / np.sqrt(self.theta_x ** 2 + self.theta_z ** 2)
-        a22 = np.sqrt(self.theta_x ** 2 + self.theta_z ** 2) * np.cos(self.rotate)
-        a23 = (- self.theta_x * self.theta_z * np.cos(self.rotate) + self.theta_x * np.sin(self.rotate)) / np.sqrt(self.theta_x ** 2 + self.theta_z ** 2)
+            a21 = -self.theta_y * np.cos(self.rotate)
+            a22 = 0
+            a23 = np.sin(self.rotate)
 
-        a31 = (self.theta_x * self.theta_y * np.sin(self.rotate) - self.theta_z * np.cos(self.rotate)) / np.sqrt(self.theta_x ** 2 + self.theta_z ** 2)
-        a32 = - np.sqrt(self.theta_x ** 2 + self.theta_z ** 2) * np.sin(self.rotate)
-        a33 = (self.theta_x * self.theta_y * np.sin(self.rotate) + self.theta_x * np.cos(self.rotate)) / np.sqrt(self.theta_x ** 2 + self.theta_z ** 2)
+            a31 = self.theta_y * np.sin(self.rotate)
+            a32 = 0
+            a33 = np.cos(self.rotate)
+
+        else:
+
+            a11 = self.theta_x
+            a12 = self.theta_y
+            a13 = self.theta_z
+
+            a21 = (- self.theta_x * self.theta_y * np.cos(self.rotate) - self.theta_z * np.sin(self.rotate)) / np.sqrt(self.theta_x ** 2 + self.theta_z ** 2)
+            a22 = np.sqrt(self.theta_x ** 2 + self.theta_z ** 2) * np.cos(self.rotate)
+            a23 = (- self.theta_x * self.theta_z * np.cos(self.rotate) + self.theta_x * np.sin(self.rotate)) / np.sqrt(self.theta_x ** 2 + self.theta_z ** 2)
+
+            a31 = (self.theta_x * self.theta_y * np.sin(self.rotate) - self.theta_z * np.cos(self.rotate)) / np.sqrt(self.theta_x ** 2 + self.theta_z ** 2)
+            a32 = - np.sqrt(self.theta_x ** 2 + self.theta_z ** 2) * np.sin(self.rotate)
+            a33 = (self.theta_x * self.theta_y * np.sin(self.rotate) + self.theta_x * np.cos(self.rotate)) / np.sqrt(self.theta_x ** 2 + self.theta_z ** 2)
 
         self.T = sp.Matrix([[a11, a12, a13, 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  ],
                             [a21, a22, a23, 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  ],
@@ -72,9 +86,9 @@ class Frame:
 
         length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
 
-        theta_x = np.arccos((node2.x - node1.x) / length)
-        theta_y = np.arccos((node2.y - node1.y) / length)
-        theta_z = np.arccos((node2.z - node1.z) / length)
+        theta_x = (node2.x - node1.x) / length
+        theta_y = (node2.y - node1.y) / length
+        theta_z = (node2.z - node1.z) / length
         # rotate = np.arctan((node2.y - node1.y) / (node2.z - node1.z))
 
         if ((node2.z - node1.z) == 0) and ((node2.y - node1.y) > 0):

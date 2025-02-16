@@ -67,7 +67,9 @@ class NodeGeneral:
         self.z = z
 
         self.set_force()
+        self.get_forces_vector()
         self.set_displacement()
+        self.get_displacement_vector()
 
     def set_force(self, **kwargs):
 
@@ -110,7 +112,6 @@ class NodeGeneral:
             self.uz = float(kwargs['uz'])
         else:
             self.uz = np.nan
-        
         if 'rx' in kwargs:
             self.rx = float(kwargs['rx'])
         else:
@@ -135,3 +136,21 @@ class NodeGeneral:
             'y' : self.y,
             'z' : self.z
         }
+
+    def get_forces_vector(self):
+
+        self.forces_vector = np.array([self.fx,
+                                       self.fy,
+                                       self.fz,
+                                       self.mx,
+                                       self.my,
+                                       self.mz])
+
+    def get_displacement_vector(self):
+
+        self.displacement_vector = np.array([self.ux,
+                                            self.uy,
+                                            self.uz,
+                                            self.rx,
+                                            self.ry,
+                                            self.rz])

@@ -1,5 +1,5 @@
 import numpy as np
-from src import Node as nd
+from src import Node
 
 class Apoio:
 
@@ -36,6 +36,8 @@ class Apoio:
         self.indice = self.node.indice
         
         Apoio.list_apoios.append(self)
+
+        node.get_displacement_vector()
     
     def identif_node(self, x, y, z):
         for idx, iter_node in enumerate(nd.Node.list_nodes):
